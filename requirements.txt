@@ -1,7 +1,8 @@
-pandas
-numpy
-requests
-sqlalchemy
-scikit-learn
+Flask==3.0.2
+gunicorn==21.2.0
+pandas==2.1.4
+numpy==1.26.3
+requests==2.31.0
+sqlalchemy==2.0.25
+scikit-learn==1.3.2
 psycopg2-binary==2.9.9
-gunicorn
