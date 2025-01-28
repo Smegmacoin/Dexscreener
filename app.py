@@ -7,7 +7,6 @@ import pandas as pd
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
-from sklearn.ensemble import IsolationForest
 from flask import Flask, render_template_string
 
 # Initialize Flask app
@@ -26,18 +25,13 @@ DATABASE_URL = os.environ.get(
     "postgres://u6nc4l97ds0u0b:p246d69f559a0af43f9a277e314127325b16e50d2d0c618b2e6670b50502f2ef5@c2ihhcf1divl18.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d8uirubbaqeds3"
 ).replace("postgres://", "postgresql://")
 
-BLACKLIST_API_URL = os.environ.get("BLACKLIST_API_URL", "https://api.gopluslabs.io/api/v1/token_security/1")
-SLEEP_INTERVAL = int(os.environ.get("SLEEP_INTERVAL", "300"))  # 5 minutes default
-
 class DexMonitor:
     def __init__(self):
         self.engine = self._create_db_engine()
         self._init_database()
-        self.model = IsolationForest(n_estimators=100, contamination=0.01)
-        self.historical_data = pd.DataFrame()
 
     def _create_db_engine(self):
-        """Create database engine with connection pooling and retries"""
+        """Create database engine with retries"""
         retries = 0
         max_retries = 5
         while retries < max_retries:
@@ -56,7 +50,7 @@ class DexMonitor:
         raise RuntimeError("Could not establish database connection")
 
     def _init_database(self):
-        """Initialize the database schema if it doesn't exist"""
+        """Create the `trades` table if it doesn't exist"""
         create_table_query = """
         CREATE TABLE IF NOT EXISTS trades (
             id SERIAL PRIMARY KEY,
@@ -70,7 +64,7 @@ class DexMonitor:
                 conn.execute(text(create_table_query))
                 logging.info("Trades table created or already exists.")
         except Exception as e:
-            logging.error(f"Error initializing database: {e}")
+            logging.error(f"Error creating trades table: {e}")
 
 # Web endpoint for health checks
 @app.route('/')
@@ -80,18 +74,17 @@ def health_check():
 # Web endpoint to display data in an HTML table
 @app.route('/data', methods=['GET'])
 def view_data():
-    """Endpoint to display data in an HTML table"""
+    """Display data from the trades table"""
     try:
-        # Create database connection
+        # Query the trades table
         engine = create_engine(DATABASE_URL)
         with engine.connect() as conn:
-            # Query the table (replace `trades` with your actual table name)
             result = conn.execute(text("SELECT * FROM trades LIMIT 50"))
             data = [dict(row) for row in result]
 
-        # If no data is found
+        # If no data, show a message
         if not data:
-            return "<h1>No data available in the database.</h1>"
+            return "<h1>No data available in the trades table.</h1>"
 
         # Render data in an HTML table
         html_template = """
@@ -133,21 +126,15 @@ def view_data():
         return render_template_string(html_template, data=data)
 
     except Exception as e:
-        # Handle errors
-        logging.error(f"Error displaying data: {e}")
         return f"<h1>Error: {e}</h1>", 500
 
+# Start monitoring in the background
 def start_background_task():
-    """Start monitoring in background thread"""
     monitor = DexMonitor()
-    monitor_thread = threading.Thread(target=monitor.run_monitor)
+    monitor_thread = threading.Thread(target=monitor._init_database)
     monitor_thread.daemon = True
     monitor_thread.start()
 
 if __name__ == "__main__":
     start_background_task()
-    app.run(
-        host='0.0.0.0',
-        port=int(os.environ.get('PORT', 5000)),
-        use_reloader=False
-    )
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), use_reloader=False)
