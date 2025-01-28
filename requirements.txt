@@ -4,5 +4,5 @@ pandas==1.5.3
 numpy==1.24.4
 requests==2.31.0
 sqlalchemy==2.0.25
-scikit-learn==1.2.2
 psycopg2-binary==2.9.9
+scikit-learn==1.2.2
