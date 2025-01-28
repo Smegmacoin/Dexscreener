@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 import requests
@@ -47,10 +47,34 @@ def initialize_database():
 
 # Health check route
 @app.route('/')
-def health_check():
-    return "DEX Monitor Operational"
+def home():
+    """Homepage with links to interact with the API."""
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>DEX Monitor</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            a { display: block; margin: 10px 0; font-size: 18px; color: blue; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+        </style>
+    </head>
+    <body>
+        <h1>DEX Monitor</h1>
+        <p>Use the links below to interact with the app:</p>
+        <a href="/create_table">Create Trades Table</a>
+        <a href="/data">View Trades Data</a>
+        <form action="/check_token" method="GET">
+            <label for="token_address">Check Token Security:</label><br>
+            <input type="text" id="token_address" name="token_address" placeholder="Enter token address">
+            <button type="submit">Check</button>
+        </form>
+    </body>
+    </html>
+    """)
 
-# Data viewer route
+# View trades data route
 @app.route('/data', methods=['GET'])
 def view_data():
     """Display data from the `trades` table."""
@@ -161,29 +185,6 @@ def create_table():
     except Exception as e:
         logging.error(f"Error creating table: {e}")
         return f"<h1>Error creating table: {e}</h1>", 500
-
-# Data insertion route
-@app.route('/insert_data', methods=['POST'])
-def insert_data():
-    """Insert data into the `trades` table."""
-    data = request.get_json()
-    insert_query = """
-    INSERT INTO trades (token_name, volume)
-    VALUES (:token_name, :volume)
-    """
-    try:
-        engine = create_engine(DATABASE_URL)
-        with engine.connect() as conn:
-            for record in data:
-                conn.execute(text(insert_query), {
-                    "token_name": record["token_name"],
-                    "volume": record["volume"]
-                })
-        logging.info("Data inserted successfully.")
-        return jsonify({"message": "Data inserted successfully"}), 200
-    except Exception as e:
-        logging.error(f"Error inserting data: {e}")
-        return jsonify({"error": str(e)}), 500
 
 # Initialize database on app startup
 if __name__ == "__main__":
