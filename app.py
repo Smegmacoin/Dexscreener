@@ -2,7 +2,6 @@ import os
 import logging
 from flask import Flask, render_template_string
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import OperationalError
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -100,6 +99,29 @@ def view_data():
     except Exception as e:
         logging.error(f"Error retrieving data: {e}")
         return f"<h1>Error: {e}</h1>", 500
+
+# Manual table creation route
+@app.route('/create_table')
+def create_table():
+    """Manually create the `trades` table."""
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS trades (
+        id SERIAL PRIMARY KEY,
+        token_name VARCHAR(255),
+        volume FLOAT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """
+    try:
+        logging.info("Connecting to the database...")
+        engine = create_engine(DATABASE_URL)
+        with engine.connect() as conn:
+            conn.execute(text(create_table_query))
+        logging.info("Trades table created successfully.")
+        return "<h1>Trades table created successfully!</h1>"
+    except Exception as e:
+        logging.error(f"Error creating table: {e}")
+        return f"<h1>Error creating table: {e}</h1>", 500
 
 # Initialize database on app startup
 if __name__ == "__main__":
