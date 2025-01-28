@@ -4,9 +4,9 @@ import logging
 import threading
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
+from sqlalchemy.exc import OperationalError
 from sklearn.ensemble import IsolationForest
 from flask import Flask, render_template_string
 
@@ -55,7 +55,7 @@ class DexMonitor:
                 time.sleep(10)
         raise RuntimeError("Could not establish database connection")
 
-    # Rest of DexMonitor class remains the same as your original code...
+    # Rest of DexMonitor class remains unchanged...
 
 # Web endpoint for health checks
 @app.route('/')
@@ -70,8 +70,8 @@ def view_data():
         # Create database connection
         engine = create_engine(DATABASE_URL)
         with engine.connect() as conn:
-            # Query the table (replace `your_table_name` with the actual table name)
-            result = conn.execute(text("SELECT * FROM your_table_name LIMIT 50"))
+            # Query the table (replace `trades` with your actual table name)
+            result = conn.execute(text("SELECT * FROM trades LIMIT 50"))
             data = [dict(row) for row in result]
 
         # If no data is found
@@ -119,6 +119,7 @@ def view_data():
 
     except Exception as e:
         # Handle errors
+        logging.error(f"Error displaying data: {e}")
         return f"<h1>Error: {e}</h1>", 500
 
 def start_background_task():
