@@ -55,7 +55,22 @@ class DexMonitor:
                 time.sleep(10)
         raise RuntimeError("Could not establish database connection")
 
-    # Rest of DexMonitor class remains unchanged...
+    def _init_database(self):
+        """Initialize the database schema if it doesn't exist"""
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS trades (
+            id SERIAL PRIMARY KEY,
+            token_name VARCHAR(255),
+            volume FLOAT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        try:
+            with self.engine.connect() as conn:
+                conn.execute(text(create_table_query))
+                logging.info("Trades table created or already exists.")
+        except Exception as e:
+            logging.error(f"Error initializing database: {e}")
 
 # Web endpoint for health checks
 @app.route('/')
