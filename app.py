@@ -47,34 +47,10 @@ def initialize_database():
 
 # Health check route
 @app.route('/')
-def home():
-    """Homepage with links to interact with the API."""
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>DEX Monitor</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            a { display: block; margin: 10px 0; font-size: 18px; color: blue; text-decoration: none; }
-            a:hover { text-decoration: underline; }
-        </style>
-    </head>
-    <body>
-        <h1>DEX Monitor</h1>
-        <p>Use the links below to interact with the app:</p>
-        <a href="/create_table">Create Trades Table</a>
-        <a href="/data">View Trades Data</a>
-        <form action="/check_token" method="GET">
-            <label for="token_address">Check Token Security:</label><br>
-            <input type="text" id="token_address" name="token_address" placeholder="Enter token address">
-            <button type="submit">Check</button>
-        </form>
-    </body>
-    </html>
-    """)
+def health_check():
+    return "DEX Monitor Operational"
 
-# View trades data route
+# Data viewer route
 @app.route('/data', methods=['GET'])
 def view_data():
     """Display data from the `trades` table."""
@@ -185,6 +161,25 @@ def create_table():
     except Exception as e:
         logging.error(f"Error creating table: {e}")
         return f"<h1>Error creating table: {e}</h1>", 500
+
+# Insert test data route
+@app.route('/insert_test_data', methods=['GET'])
+def insert_test_data():
+    """Insert test data into the trades table."""
+    engine = create_engine(DATABASE_URL)
+    try:
+        with engine.connect() as conn:
+            # Insert test data
+            conn.execute(text("""
+                INSERT INTO trades (token_name, volume) 
+                VALUES ('TestToken1', 123.45), 
+                       ('TestToken2', 678.90),
+                       ('TestToken3', 111.22)
+            """))
+        return "<h1>Test data inserted successfully!</h1>"
+    except SQLAlchemyError as e:
+        logging.error(f"Error inserting test data: {e}")
+        return f"<h1>Error: {e}</h1>", 500
 
 # Initialize database on app startup
 if __name__ == "__main__":
