@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from sklearn.ensemble import IsolationForest
-from flask import Flask
+from flask import Flask, render_template_string
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -61,6 +61,65 @@ class DexMonitor:
 @app.route('/')
 def health_check():
     return "DEX Monitor Operational - UTC: " + datetime.utcnow().isoformat()
+
+# Web endpoint to display data in an HTML table
+@app.route('/data', methods=['GET'])
+def view_data():
+    """Endpoint to display data in an HTML table"""
+    try:
+        # Create database connection
+        engine = create_engine(DATABASE_URL)
+        with engine.connect() as conn:
+            # Query the table (replace `your_table_name` with the actual table name)
+            result = conn.execute(text("SELECT * FROM your_table_name LIMIT 50"))
+            data = [dict(row) for row in result]
+
+        # If no data is found
+        if not data:
+            return "<h1>No data available in the database.</h1>"
+
+        # Render data in an HTML table
+        html_template = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Data Viewer</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+                th, td { border: 1px solid black; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                h1 { color: #333; }
+            </style>
+        </head>
+        <body>
+            <h1>Data Viewer</h1>
+            <table>
+                <thead>
+                    <tr>
+                        {% for key in data[0].keys() %}
+                        <th>{{ key }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for value in row.values() %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </body>
+        </html>
+        """
+        return render_template_string(html_template, data=data)
+
+    except Exception as e:
+        # Handle errors
+        return f"<h1>Error: {e}</h1>", 500
 
 def start_background_task():
     """Start monitoring in background thread"""
