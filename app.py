@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template_string, request, jsonify
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 import requests
@@ -161,6 +161,29 @@ def create_table():
     except Exception as e:
         logging.error(f"Error creating table: {e}")
         return f"<h1>Error creating table: {e}</h1>", 500
+
+# Data insertion route
+@app.route('/insert_data', methods=['POST'])
+def insert_data():
+    """Insert data into the `trades` table."""
+    data = request.get_json()
+    insert_query = """
+    INSERT INTO trades (token_name, volume)
+    VALUES (:token_name, :volume)
+    """
+    try:
+        engine = create_engine(DATABASE_URL)
+        with engine.connect() as conn:
+            for record in data:
+                conn.execute(text(insert_query), {
+                    "token_name": record["token_name"],
+                    "volume": record["volume"]
+                })
+        logging.info("Data inserted successfully.")
+        return jsonify({"message": "Data inserted successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error inserting data: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # Initialize database on app startup
 if __name__ == "__main__":
