@@ -1,7 +1,10 @@
 import os
 import logging
+import threading
 from flask import Flask, render_template_string
 from sqlalchemy import create_engine, text
+from sklearn.ensemble import IsolationForest
+import pandas as pd
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -123,7 +126,14 @@ def create_table():
         logging.error(f"Error creating table: {e}")
         return f"<h1>Error creating table: {e}</h1>", 500
 
-# Initialize database on app startup
+# Background task to run monitoring
+def start_background_task():
+    """Start a background task."""
+    logging.info("Background task started.")
+    pass  # Replace with actual monitoring logic if needed
+
+# Initialize database and start background task
 if __name__ == "__main__":
     initialize_database()
+    start_background_task()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
